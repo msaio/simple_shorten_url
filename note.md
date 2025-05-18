@@ -19,3 +19,23 @@ Guide: https://gorails.com/setup/windows/11
 - Document with mark down
   - List down knowing issues and vulnerabilities
   - Give suggestion for enhancement or different approaches
+
+- Now give me this database structure
+-
+
+## Day 3: Preparation
+- Hosting: Heroku
+- Domain: `superlong.site` (Hostinger)
+- DNS: Clouflare
+
+
+## Day 4: Rest
+
+## Day 5: Database setup
+- Install postgres
+- Add environment file
+- Update database configuration
+
+## Day 6: Basic logic
+- `Url` model
+- `Url` controller for 2 `/encode` and `/decode` endpoints

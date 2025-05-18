@@ -58,3 +58,25 @@ psql -U $USER -c "\password"
 rails db:create
 rails db:migrate
 ```
+
+- Set up environment variables
+Ex: Create `.env` file
+```env
+# Database configuration
+DATABASE_USER=
+DATABASE_PASSWORD=
+DATABASE_HOST=
+DATABASE_PORT=
+DATABASE_CONNECTION_POOL=
+
+# Rails environment
+RAILS_ENV=
+RAILS_MAX_THREADS=
+HOST_DOMAIN=
+```
+
+- Start server
+```sh
+cd <project_path>
+rails s -p 3000 -b 0.0.0.0
+```
