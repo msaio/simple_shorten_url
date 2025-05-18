@@ -1,8 +1,39 @@
 class Url < ApplicationRecord
+  # =============================================================================
+  # URL SHORTENING MODEL
+  # =============================================================================
+  # This model implements a URL shortening system with the following features:
+  # 
+  # - Multi-stage key generation strategy to avoid collisions:
+  #   1. 6-character keys (first attempt)
+  #   2. 8-character keys (fallback)
+  #   3. Random key with timestamp (final fallback)
+  # 
+  # - Deterministic encoding for consistent keys:
+  #   Same URL always produces same key when possible
+  # 
+  # - URL normalization:
+  #   Standardizes URLs to prevent duplicates with different formats
+  # 
+  # - Automatic duplicate detection:
+  #   Reuses existing shortened keys for duplicate URLs
+  # 
+  # - Collision detection and handling:
+  #   Uses cached lookup to reduce database hits
+  # 
+  # The implementation focuses on reliability and uniqueness of shortened keys
+  # while maintaining reasonable performance characteristics.
+  # 
+  # See docs/decision/001-url-shortening-implementation.md for details.
+  # =============================================================================
+  
   # Required libraries
   require 'base64'
   require 'digest'
   require 'securerandom'
+  
+  # Include URL normalization concern
+  include UrlNormalize
 
   #=============================
   # Constants
@@ -26,14 +57,13 @@ class Url < ApplicationRecord
   # TODO: Add before_validation callbacks
   #       - `validate_url_format` :
   #          We need to check if the original_url is valid
-  #       - `check_if_url_exists` : (currently will be implemented as controller)
-  #         If presents, there is no need to generate a new shortened_key
-  #         We can just return the existing shortened_key
-  #       - `normalize_url` :
-  #        Normalize the original_url before saving to the database (concerns/url_normalize.rb)
-
-
-  before_validation :generate_shortened_key, on: :create, if: -> { original_url.present? }
+  
+  # Normalize the URL before validation to ensure consistent storage
+  before_validation :normalize_url_before_save, on: :create
+  # Check if the normalized URL already exists in the database
+  before_validation :check_if_url_exists, on: :create, if: -> { original_url.present? && errors.empty? }
+  # Generate a new shortened key if the URL doesn't exist yet
+  before_validation :generate_shortened_key, on: :create, if: -> { original_url.present? && !@url_exists && errors.empty? }
 
   #=============================
   # Public Class Methods
@@ -104,6 +134,42 @@ class Url < ApplicationRecord
   # Private Methods
   #=============================
   private
+
+  # Normalizes the URL before saving to ensure consistent storage and comparison
+  def normalize_url_before_save
+    return unless original_url.present?
+    
+    begin
+      # Use the normalize_url method from the UrlNormalize concern
+      normalized = normalize_url(original_url)
+      self.original_url = normalized if normalized
+    rescue UrlNormalize::NormalizationError => e
+      # Log the error but don't modify the URL - let validation handle it
+      Rails.logger.error("URL normalization error: #{e.message}")
+      # The validation will fail due to the invalid URL format
+      return false
+    end
+  end
+
+  # Checks if a URL already exists in the database
+  # If it does, copies the existing shortened key to avoid duplicates
+  def check_if_url_exists
+    # Look for the normalized URL in the database
+    existing_url = self.class.find_by(original_url: original_url)
+    
+    if existing_url.present?
+      # URL already exists, reuse its shortened key
+      self.shortened_key = existing_url.shortened_key
+      # Set flag to skip key generation
+      @url_exists = true
+      
+      # Log that we're reusing an existing key
+      Rails.logger.info("URL already exists, reusing shortened key: #{shortened_key}")
+    else
+      # URL does not exist, will need to generate a new key
+      @url_exists = false
+    end
+  end
 
   # Generates a shortened key using a multi-stage collision avoidance strategy:
   # 1. Try short keys (6 chars) with multiple attempts

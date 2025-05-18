@@ -1,4 +1,29 @@
 module UrlNormalize
+  # =============================================================================
+  # URL NORMALIZATION CONCERN
+  # =============================================================================
+  # This concern implements URL normalization to ensure consistent URL storage
+  # and accurate duplicate detection with the following features:
+  # 
+  # - Format standardization:
+  #   1. Adding http:// scheme if missing
+  #   2. Converting scheme and host to lowercase
+  #   3. Removing default ports (80 for HTTP, 443 for HTTPS)
+  #   4. Removing 'www.' subdomain prefix
+  #
+  # - Parameter handling:
+  #   1. Sorting query parameters alphabetically
+  #   2. Removing empty query strings and fragments
+  #   3. Removing trailing slashes from root paths
+  # 
+  # - Error handling:
+  #   Custom exception hierarchy for different error conditions
+  #   (empty URLs, missing hosts, invalid format, unsupported schemes)
+  # 
+  # Currently only HTTP and HTTPS schemes are supported.
+  # See docs/decision/001-url-shortening-implementation.md for details.
+  # =============================================================================
+  
   extend ActiveSupport::Concern
   
   # Custom exception classes for URL normalization errors
@@ -12,19 +37,7 @@ module UrlNormalize
     # Normalizes the URL to ensure consistent storage and comparison across URLs
     # This process helps eliminate duplicate URLs that are technically the same but formatted differently
     # 
-    # Normalization includes:
-    #  1. Adding http:// scheme if missing
-    #  2. Converting scheme and host to lowercase
-    #  3. Removing default ports (80 for HTTP, 443 for HTTPS) 
-    #  4. Removing the 'www.' subdomain prefix
-    #     Note: The implementation doesn't handle nested www subdomains as expected
-    #  5. Sorting query parameters alphabetically for consistent comparison
-    #  6. Removing trailing slash from path when it's alone
-    #  7. Removing empty fragments
-    # 
-    # Currently only HTTP and HTTPS schemes are fully supported.
-    # TODO: Add support for other schemes (FTP, etc.) in the future.
-    # 
+    # @param original_url [String] the URL to normalize
     # @return [String] the normalized URL
     # @raise [EmptyUrlError] if the URL is nil or empty
     # @raise [MissingHostError] if the URL doesn't contain a host

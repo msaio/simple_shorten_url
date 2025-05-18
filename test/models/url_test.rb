@@ -42,6 +42,16 @@ require "test_helper"
 #          should handle cached collision checking,
 #          fallback with timestamp should work when all else fails,
 #          constants should be properly defined
+#
+# URL Normalization Tests:
+# - URL normalization during creation
+# - Different URL formats resulting in same normalized form
+#   Tests: should normalize url before saving,
+#          should treat different formats of the same url as identical
+#
+# Duplicate URL Handling Tests:
+# - Reuse of shortened keys for duplicate URLs
+#   Tests: should reuse existing shortened key for duplicate urls
 # ------------------------------------------------------------------------------
 
 class UrlTest < ActiveSupport::TestCase
@@ -242,5 +252,49 @@ class UrlTest < ActiveSupport::TestCase
     assert Url::SHORT_KEY_LENGTH < Url::LONG_KEY_LENGTH, "SHORT_KEY_LENGTH should be less than LONG_KEY_LENGTH"
     assert Url::MAX_ATTEMPTS > 0, "MAX_ATTEMPTS should be positive"
     assert Url::MAX_RECURSION_DEPTH > 0, "MAX_RECURSION_DEPTH should be positive"
+  end
+  
+  test "should normalize url before saving" do
+    # Create URLs with different formats that should normalize to the same result
+    url1 = Url.create(original_url: "HTTP://Example.COM/path")
+    url2 = Url.create(original_url: "http://example.com/path")
+    
+    # Both should be saved with the normalized form
+    assert_equal "http://example.com/path", url1.original_url, "URL was not properly normalized"
+    assert_equal url1.original_url, url2.original_url, "Different formats weren't normalized to the same form"
+  end
+  
+  test "should treat different formats of the same url as identical" do
+    # Create URLs with different formats that should normalize to the same result
+    original = "HTTP://Example.COM:80/path?b=2&a=1"
+    normalized = "http://example.com/path?a=1&b=2"
+    
+    url1 = Url.create(original_url: original)
+    
+    # The original URL should be normalized
+    assert_equal normalized, url1.original_url, "URL was not normalized properly"
+    
+    # Attempting to create another URL with a different format of the same URL
+    url2 = Url.new(original_url: "http://www.example.com/path?a=1&b=2")
+    
+    # Should not be valid due to uniqueness validation
+    assert_not url2.valid?, "Different format of the same URL was treated as a new URL"
+    assert_includes url2.errors[:original_url], "has already been taken"
+  end
+  
+  test "should reuse existing shortened key for duplicate urls" do
+    # Create a unique URL for this test with random suffix to avoid conflicts
+    unique_suffix = SecureRandom.hex(8)
+    
+    # Create the first URL with one format
+    url1 = Url.create(original_url: "HTTP://Example.COM/duplicate-test-#{unique_suffix}?b=2&a=1")
+    key1 = url1.shortened_key
+    
+    # Create a second URL with the same content but different format
+    # This should normalize to the same value
+    url2 = Url.create(original_url: "http://example.com/duplicate-test-#{unique_suffix}?a=1&b=2")
+    
+    # Should reuse the same shortened key due to our duplicate URL handling
+    assert_equal key1, url2.shortened_key, "Duplicate URL did not reuse the existing shortened key"
   end
 end
