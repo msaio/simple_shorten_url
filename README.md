@@ -1,5 +1,11 @@
 # Simple shorten URL
 
+## Documentation
+
+For details about the URL shortening implementation, see [URL Shortening Implementation](docs/decision/001-url-shortening-implementation.md).
+
+For enhancement plans and URL normalization strategy, see [Enhancement URL Normalization Strategy](docs/decision/002-enhancement.md).
+
 ## Local development
 
 - Install `WSL` v2 - `Ubuntu` 24.04
@@ -58,3 +64,43 @@ psql -U $USER -c "\password"
 rails db:create
 rails db:migrate
 ```
+
+- Set up environment variables
+Ex: Create `.env` file
+```env
+# Database configuration
+DATABASE_USER=
+DATABASE_PASSWORD=
+DATABASE_HOST=
+DATABASE_PORT=
+DATABASE_CONNECTION_POOL=
+
+# Rails environment
+RAILS_ENV=
+RAILS_MAX_THREADS=
+HOST_DOMAIN=
+```
+
+- Start server
+```sh
+cd <project_path>
+rails s -p 3000 -b 0.0.0.0
+```
+
+- Simulate endpoints call
+```sh
+./test_url_api.sh
+
+# Run permission required
+# chmdo +x test_url_api.sh
+```
+
+## FAQs
+
+### Is the best practice?
+
+- No
+- This is a minimal viable implementation.
+- It currently supports just `/encode` and `/decode` endpoints for testing purposes.
+- The feature meets basic requirements, with all test cases passing successfully.
+- The extensive comments may seem excessive, but they ensure clarity when revisiting the code later.
