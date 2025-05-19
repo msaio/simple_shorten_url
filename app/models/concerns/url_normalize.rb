@@ -1,4 +1,6 @@
 module UrlNormalize
+  # TODO: Enhance this concern later
+
   # =============================================================================
   # URL NORMALIZATION CONCERN
   # =============================================================================
@@ -10,7 +12,7 @@ module UrlNormalize
   #   2. Converting scheme and host to lowercase
   #   3. Removing default ports (80 for HTTP, 443 for HTTPS)
   #   4. Removing 'www.' subdomain prefix
-  #
+  # 
   # - Parameter handling:
   #   1. Sorting query parameters alphabetically
   #   2. Removing empty query strings and fragments
